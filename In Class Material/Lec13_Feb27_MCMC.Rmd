@@ -1,0 +1,326 @@
+---
+title: "Feb 22, MCMC"
+author: "Stephen R. Proulx"
+date: "2/1/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(rethinking)
+source("../helper.R")
+
+```
+
+# Today's objectives:  
+
+* See the Metropolis algorithm working
+* Observe what "chains" might look like (and their problems) 
+* Learn the `ulam` syntax
+* See how slightly informative (regularizing) priors can improve chain performance
+
+
+
+## The Metropolis algorithm 
+Here is the code from the book to run a simple implementation of the algorithm. It requires a function that we are trying to measure, which is the way that population size varies by island.
+
+In this scenario, the population of the island is just proportional to it's position.
+```{r}
+# tibble version
+num_weeks <- 1e5
+positions<- tibble(week=seq(num_weeks),location=rep(0,num_weeks))
+current <- 10
+for ( i in 1:num_weeks ) {
+  ## record current position
+    positions$location[i] <- current
+  ## flip coin to generate proposal
+    proposal <- current + sample( c(-1,1) , size=1 )
+  ## now make sure he loops around the archipelago
+    if ( proposal < 1 ) proposal <- 10
+    if ( proposal > 10 ) proposal <- 1
+  ## move? Here we set the probability of moving by comparing the population size of the current island, which is also the position of the island, i.e. current, to the populaiton size of the proposal, i.e. proposal. 
+    prob_move <- proposal/current 
+    current <- ifelse( runif(1) < prob_move , proposal , current )
+}
+```
+
+
+
+```{r}
+ggplot(data=head(positions,1000), aes(x=week,y=location))+
+  geom_line()
+```
+
+
+
+We can alternatively plot the histogram of locations visited. This is what we are actually after, the density of the funtion that we are trying to match.
+```{r}
+ggplot(data=positions, aes(x=location))+
+  geom_histogram()
+
+```
+
+### A more difficult archipelago to study
+
+Now we will set the island size explicitly. Here it has two high density islands that have low density islands between them.
+```{r}
+popsize=tibble(location=seq(1,14),size=c(0.1,1,10,100,10,1,0.1,0.1,0.1,1,10,100,10,0.1))
+```
+
+
+And we will run multiple Markov chains 
+```{r}
+num_weeks <- 1e3
+reps=5
+chains=list()
+
+for(j in 1:reps){ 
+positions<- tibble(week=seq(num_weeks),location=rep(0,num_weeks))
+current <- 8
+for ( i in 1:num_weeks ) {
+  ## record current position
+    positions$location[i] <- current
+  ## flip coin to generate proposal
+    proposal <- current + sample( c(-1,1) , size=1 )
+  ## now make sure he loops around the archipelago
+    if ( proposal < 1 ) proposal <- 14
+    if ( proposal > 14 ) proposal <- 1
+  ## move?
+    prob_move <- popsize[popsize$location==proposal,]$size/popsize[popsize$location==current,]$size
+    current <- ifelse( runif(1) < prob_move , proposal , current )
+}
+
+chains[[j]]  <- positions
+}
+
+```
+
+
+We can plot each of these paths and see how they all compare with each other.
+
+
+```{r}
+ggplot(data=chains[[1]] , aes(x=week,y=location))+
+  geom_line(color="red",alpha=0.5)+
+  geom_line(data=chains[[2]],color="blue",alpha=0.5)+
+  geom_line(data=chains[[3]],color="green",alpha=0.5)+
+  geom_line(data=chains[[4]],color="yellow",alpha=0.5)+
+  geom_line(data=chains[[5]],color="purple",alpha=0.5)
+```
+
+
+Or the histograms:
+```{r}
+
+ggplot(data=chains[[1]] , aes(x=location))+
+  geom_histogram(bins = 14,fill="red",alpha=0.5)+
+  geom_histogram(data=chains[[2]],bins = 14,fill="blue",alpha=0.5)+
+  geom_histogram(data=chains[[3]],bins = 14,fill="green",alpha=0.5)+
+  geom_histogram(data=chains[[4]],bins = 14,fill="yellow",alpha=0.5)+
+  geom_histogram(data=chains[[5]],bins = 14,fill="purple",alpha=0.5)
+```
+
+And now we'll put the chains together and summarize them:
+```{r}
+combined_chains=chains[[1]]
+for(i in 2:5){
+  combined_chains=bind_rows(combined_chains,chains[[i]])
+}
+
+ggplot(data=combined_chains , aes(x=location))+
+  geom_histogram( )
+
+```
+
+
+
+## `ulam` syntax
+`ulam` uses syntax that is based on the same principles as `quap`. The main difference is that we can specify how many separate chains we want to run and how many samples to generate from that chain. 
+
+We will run the example of estimating human height regressed on weight.  First load the data:
+```{r}
+data("Howell1")
+d<-Howell1
+d2<- as_tibble(d)%>% filter(age>=18)
+```
+
+
+Now run the `ulam` model. The syntax is almost the same as for `quap`, with the addition of instructions for how to run the mcmc algorithm.
+```{r}
+ulam_model_height <- ulam(
+  alist(
+    height ~ dnorm( mu , sigma ) ,
+    mu <- a + b*weight,
+    a ~ dnorm( 178 , 20 ) ,
+    b ~ dnorm(0,3),
+    sigma ~ dunif( 0 , 50 ) 
+  ) , data=d2 , iter=3000, cores=4, chains = 4)
+```
+
+We can still use `precis` to see a summary:
+```{r}
+precis(ulam_model_height)
+```
+
+The output is similar to when we run `quap`, but we have two new columns, `n_eff` and `Rhat`.
+
+`n_eff` is a measure of how many independent samples from the posterior we have. It is an attempt to correct for correlations in the data. If `n_eff` is small compared to the number of iterations you ran, there may be a problem. Here we ran 3000*4 iterations, but half of them were in the warm up phase and not included. So the algorithm will return 6000 samples. The effective number of samples will be less than this, and this reduction reflects the efficiency of the Hamiltonian Monte Carlo method. We would like `n_eff` to generally be above 1000. Remember when we did the simulations of the Metropolis algorithm, we needed like 1000 samples to get a pretty good match for a simple surface.
+
+`Rhat` is a measure of how much agreement between chains there is, and is supposed to tell you that the Markov chains have "converged". When this number is above 1 then there may be a problem. In practice it is often between 1 and 1.1.
+
+Let's take a closer look at what actually comes out of the stan run. The object that we get out of `ulam` has a bunch of extra information attached to it, but for now we just want to see the samples that came out of the algorithm. We take the `@stanfit` part of the `ulam` object. Then we use the `rstan::extract` function to get a dataframe that has all of the samples. It has a column for each parameter we are fitting and as many rows as were sampled (in this case 500).
+```{r}
+stanfit.ulam_model_height <- ulam_model_height@stanfit
+
+(posterior.samples <- rstan::extract(stanfit.ulam_model_height) %>% as_tibble())
+
+```
+
+
+Now we have our samples, and like before we can work directly with them. For instance we can plot a histogram of the intercept values:
+```{r}
+ggplot(posterior.samples,aes(x=a))+geom_histogram(bins=20)
+```
+
+
+
+## Diagnosing and regularizing stan output
+### Extreme example of a very small dataset where regularization helps
+
+Run a model with very little data and a very flat prior
+```{r}
+## R code 9.22
+d <- tibble(y=c(-1,1))
+
+set.seed(11)
+m9.2 <- ulam(
+    alist(
+        y ~ dnorm( mu , sigma ) ,
+        mu <- alpha ,
+        alpha ~ dnorm( 0 , 1000 ) ,
+        sigma ~ dexp( 0.0001 )
+    ) , data=d , chains=3 , iter=2000)
+
+## R code 9.23
+precis( m9.2 )
+```
+Let's look more closely at what is going on here.
+
+```{r}
+bayesplot::mcmc_pairs(m9.2@stanfit , pars=c("alpha","sigma"  )) 
+```
+
+
+```{r}
+traceplot( m9.2 )
+
+trankplot( m9.2 )
+
+```
+
+
+```{r}
+## R code 9.24
+set.seed(11)
+m9.3 <- ulam(
+    alist(
+        y ~ dnorm( mu , sigma ) ,
+        mu <- alpha ,
+        alpha ~ dnorm( 1 , 10 ) ,
+        sigma ~ dexp( 1 )
+    ) , data=d, chains=3, iter=2000 )
+
+precis( m9.3 )
+```
+
+Let's look more closely at what is going on here.
+```{r}
+bayesplot::mcmc_pairs(m9.3@stanfit , pars=c("alpha","sigma"  ) )
+```
+
+```{r}
+traceplot( m9.3 )
+
+trankplot( m9.3 )
+
+```
+
+
+### A model that has non-identifiable parameters
+In real world examples, it is easy to write down a model which makes sense but has "non-identifiable" parameters. This just means that multiple combinations of parameters can produce the same or similar patterns of data. These models can careen wildly around parameters space. Some of this can be fixed by using more realistic priors, and also it is often the case that the models are fine at predicting relevant information even when specific parameters are non-identifiable.
+
+Here is an example that makes this very explicit, our two parameters just sum up to determine the mean of a normal likelihood. And here even though the individual parameters are not identifiable, their sum is.
+
+```{r}
+## R code 9.25
+set.seed(41)
+y <- rnorm( 100 , mean=0 , sd=1 )
+
+## R code 9.26
+set.seed(384)
+m9.4 <- ulam(
+    alist(
+        y ~ dnorm( mu , sigma ) ,
+        mu <- a1 + a2 ,
+        a1 ~ dnorm( 0 , 1000 ),
+        a2 ~ dnorm( 0 , 1000 ),
+        sigma ~ dexp( 1 )
+    ) , data=list(y=y) , chains=3,iter=2000 )
+```
+
+Look at the summary. It looks not great.
+```{r}
+precis( m9.4 )
+```
+```{r}
+pairs(m9.4@stanfit, pars=c("a1","a2","sigma"))
+
+traceplot( m9.4 )
+
+trankplot( m9.4 )
+```
+
+Even though this model has non-identifiable parameters, it gets the big picture correct. This also highlights one of the great features of model-based statistics, we can use the output of the model in new combinations without much added work. So here we can reconstruct the aggregate parameter $asum=a1+a2$  and use all the same tools we have developed.
+```{r}
+post=as.data.frame(m9.4@stanfit) %>% mutate(asum=a1+a2) 
+mcmcpairs(select(post,asum,sigma) , pars=c("asum","sigma"))
+```
+
+
+Now run the same model but with more restrictive priors and see if our performance metrics improve. 
+```{r}
+## R code 9.27
+m9.5 <- ulam(
+    alist(
+        y ~ dnorm( mu , sigma ) ,
+        mu <- a1 + a2 ,
+        a1 ~ dnorm( 0 , 10 ),
+        a2 ~ dnorm( 0 , 10 ),
+        sigma ~ dexp( 1 )
+    ) , data=list(y=y) , chains=3 )
+```
+
+The summary looks better, although the individual parameters still vary a lot. Our chains do mix (they have less room from the prior to wiggle in), which we can see from Rhat values near 1. 
+```{r}
+precis( m9.5 )
+
+```
+
+```{r}
+pairs(m9.5@stanfit, pars=c("a1","a2","sigma"))
+
+traceplot( m9.5 )
+
+trankplot( m9.5 )
+```
+
+Like before this still gets the total right.
+```{r}
+post=as.data.frame(m9.5@stanfit) %>% mutate(asum=a1+a2) 
+mcmcpairs(select(post,asum,sigma) )
+ 
+```
+
+
