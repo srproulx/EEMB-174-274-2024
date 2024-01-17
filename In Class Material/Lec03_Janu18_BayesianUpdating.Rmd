@@ -25,11 +25,11 @@ Remember that the basic formula is
 $$
 \mathrm{Posterior}(p | d) = \frac{\mathrm{Likelihood}(d | p) * \mathrm{prior}(p)}{\mathrm{norm(d)}}
 $$
-The function $\mathrm{norm(d)}$ is a function of the data: This is because it integrates over all possible values of the parameters. So while this does not depend on the parameters, it does depend on the choice of possible parameters. 
+The function $\mathrm{norm(d)}$ is a function of the data: This is because it integrates over all possible values of the parameters. So while this does not depend on the parameters, it does depend on the choice of possible parameters. We could also call this the total probability of the data, which really means the total likelihood of observing the data given the "small world" that we have constructed.
 
 1.  Write your likelihood function: This is the model or "data story" and reflects your knowledge and assumptions about the biological system.
 
-2. Identify the parameters, these are the part of the likelihood function that are unknown.  Decide what the range of possible parameter values is. 
+2. Identify the parameters, these are the part of the likelihood function that are unknown.  Decide what the range of possible parameter values is. (there may be variables that you decide are known, like how many samples you have collected. It is a variable, but we won't consider it to be a parameter.)
 
 3. Create a "grid" of the parameters. You have the ability to make this grid regular (i.e. each point is the same distance from its neighbor) or scaled some other way.  This will really be a list of points in the grid, i.e. a table where each row is a set of parameters to be considered. 
 
@@ -72,7 +72,7 @@ posterior_table <- mutate(posterior_table , likelihood = (d_now==1)*p_w_proposed
 ```
 
 
-5. We'll start with a uniform prior, meaning we beleive all values of $p_w$ are equally likely. Because we are discretizing the prior density function, I'm going to go ahead and ensure that the probabilities add up to 1 by setting our prior probability to 1 divided by the number of points in our grid.
+5. We'll start with a uniform prior, meaning we believe all values of $p_w$ are equally likely. Because we are discretizing the prior density function, I'm going to go ahead and ensure that the probabilities add up to 1 by setting our prior probability to 1 divided by the number of points in our grid.
 
 Again we add this using mutate, and we use the fact that `n()` gives the number of elements in our grid.
 
@@ -193,8 +193,6 @@ We can also do this by grouping the W's and L's together ahead of time. Because 
 You will write the code to do it yourself and plot the figure. This additional useful piece of code to describe the binomial likelihood:
 `likelihood = dbinom(numW,size=numT,prob=p_w_proposed)`
 where you will need to replace `numT` with the number of times the globe has been tossed and `numW` with the number of times it came up W.
-
-
 
 
 
