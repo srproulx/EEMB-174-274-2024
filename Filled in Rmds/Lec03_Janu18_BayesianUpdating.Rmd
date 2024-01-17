@@ -184,7 +184,153 @@ ggplot(data=posterior_table_next, aes(x=p_w_proposed, y=posterior))+
 ```
 
 
+```{r}
+posterior_table_next <- mutate(posterior_table_next , prior = posterior)
+```
 
+Decide what piece of data to add:
+```{r}
+d_now=1
+```
+
+Turn the crank on the Bayesian updating.  
+```{r}
+posterior_table_next <- mutate(posterior_table_next , likelihood= (d_now==1)*p_w_proposed +(d_now==0)*(1-p_w_proposed),
+                       raw_posterior = likelihood * prior , posterior = raw_posterior/sum(raw_posterior))
+
+```
+
+
+
+
+```{r}
+ggplot(data=posterior_table_next, aes(x=p_w_proposed, y=posterior))+
+  geom_line(color="red")+
+  geom_line(aes(x=p_w_proposed, y=prior) , color="blue")
+```
+```{r}
+posterior_table_next <- mutate(posterior_table_next , prior = posterior)
+```
+
+Decide what piece of data to add:
+```{r}
+d_now=1
+```
+
+Turn the crank on the Bayesian updating.  
+```{r}
+posterior_table_next <- mutate(posterior_table_next , likelihood= (d_now==1)*p_w_proposed +(d_now==0)*(1-p_w_proposed),
+                       raw_posterior = likelihood * prior , posterior = raw_posterior/sum(raw_posterior))
+
+```
+
+
+
+
+```{r}
+ggplot(data=posterior_table_next, aes(x=p_w_proposed, y=posterior))+
+  geom_line(color="red")+
+  geom_line(aes(x=p_w_proposed, y=prior) , color="blue")
+```
+
+```{r}
+posterior_table_next <- mutate(posterior_table_next , prior = posterior)
+```
+
+Decide what piece of data to add:
+```{r}
+d_now=0
+```
+
+Turn the crank on the Bayesian updating.  
+```{r}
+posterior_table_next <- mutate(posterior_table_next , likelihood= (d_now==1)*p_w_proposed +(d_now==0)*(1-p_w_proposed),
+                       raw_posterior = likelihood * prior , posterior = raw_posterior/sum(raw_posterior))
+
+```
+
+
+
+
+```{r}
+ggplot(data=posterior_table_next, aes(x=p_w_proposed, y=posterior))+
+  geom_line(color="red")+
+  geom_line(aes(x=p_w_proposed, y=prior) , color="blue")
+```
+
+```{r}
+posterior_table_next <- mutate(posterior_table_next , prior = posterior)
+```
+
+Decide what piece of data to add:
+```{r}
+d_now=1
+```
+
+Turn the crank on the Bayesian updating.  
+```{r}
+posterior_table_next <- mutate(posterior_table_next , likelihood= (d_now==1)*p_w_proposed +(d_now==0)*(1-p_w_proposed),
+                       raw_posterior = likelihood * prior , posterior = raw_posterior/sum(raw_posterior))
+
+```
+
+
+
+
+```{r}
+ggplot(data=posterior_table_next, aes(x=p_w_proposed, y=posterior))+
+  geom_line(color="red")+
+  geom_line(aes(x=p_w_proposed, y=prior) , color="blue")
+```
+```{r}
+posterior_table_next <- mutate(posterior_table_next , prior = posterior)
+```
+
+Decide what piece of data to add:
+```{r}
+d_now=0
+```
+
+Turn the crank on the Bayesian updating.  
+```{r}
+posterior_table_next <- mutate(posterior_table_next , likelihood= (d_now==1)*p_w_proposed +(d_now==0)*(1-p_w_proposed),
+                       raw_posterior = likelihood * prior , posterior = raw_posterior/sum(raw_posterior))
+
+```
+
+
+
+
+```{r}
+ggplot(data=posterior_table_next, aes(x=p_w_proposed, y=posterior))+
+  geom_line(color="red")+
+  geom_line(aes(x=p_w_proposed, y=prior) , color="blue")
+```
+
+```{r}
+posterior_table_next <- mutate(posterior_table_next , prior = posterior)
+```
+
+Decide what piece of data to add:
+```{r}
+d_now=1
+```
+
+Turn the crank on the Bayesian updating.  
+```{r}
+posterior_table_next <- mutate(posterior_table_next , likelihood= (d_now==1)*p_w_proposed +(d_now==0)*(1-p_w_proposed),
+                       raw_posterior = likelihood * prior , posterior = raw_posterior/sum(raw_posterior))
+
+```
+
+
+
+
+```{r}
+ggplot(data=posterior_table_next, aes(x=p_w_proposed, y=posterior))+
+  geom_line(color="red")+
+  geom_line(aes(x=p_w_proposed, y=prior) , color="blue")
+```
 ## Try changing the order that you add W's and L's to the list. How does it change the outcome?
 
 
@@ -195,6 +341,31 @@ We can also do this by grouping the W's and L's together ahead of time. Because 
 You will write the code to do it yourself and plot the figure. This additional useful piece of code to describe the binomial likelihood:
 `likelihood = dbinom(numW,size=numT,prob=p_w_proposed)`
 where you will need to replace `numT` with the number of times the globe has been tossed and `numW` with the number of times it came up W.
+
+```{r}
+ws=6
+ls=3
+
+posterior_binom =tibble(p_w_proposed = seq(from=0, to = 1, by = 0.01) ) %>%
+   mutate( prior=1/n(), likelihood= dbinom(ws,size=ws+ls,prob= p_w_proposed),
+                       raw_posterior = likelihood * prior , posterior = raw_posterior/sum(raw_posterior))
+
+
+
+```
+
+```{r}
+ggplot(data=posterior_binom, aes(y=posterior, x=p_w_proposed ))+
+  geom_line(color="red")
+```
+
+And if we want to compare to the sequential approach (I shifted the sequential answer down by 0.0001 units just so you can see them both)
+
+```{r}
+ggplot(data=posterior_binom, aes(y=posterior, x=p_w_proposed ))+
+  geom_line(color="red")+
+  geom_line(data=posterior_table_next, aes(x=p_w_proposed, y=posterior-0.0001, alpha(0.5)),color="green")
+```
 
 
 ## Using the same technique to answer other types of Bayesian question
