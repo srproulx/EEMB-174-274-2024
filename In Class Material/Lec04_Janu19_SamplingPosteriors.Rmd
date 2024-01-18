@@ -21,7 +21,7 @@ Today's objectives:
 
 * Learn how to sample from a probability distribution  
 * Learn how to sample from a grid approximation  
-* Quantify the posterior distribuiton using mean, median, quantiles, and HPDI
+* Quantify the posterior distribution using mean, median, quantiles, and HPDI
 * Use a posterior distribution to simulate data: posterior-predictive simulations  
 
 
