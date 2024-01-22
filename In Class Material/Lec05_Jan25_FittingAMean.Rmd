@@ -153,6 +153,8 @@ height_lik_f_vec <- Vectorize(height_lik_f)
 
 
 Repeat your mantra: likelihood * prior and then normalize! This time we do it on the log scale and then convert back to the natural scale.  
+
+Break up into pairs to program this filling in the YOURCODEHERE portions
 ```{r grid_posterior_execution}
 posterior_table <- d_grid %>%
   mutate(log_likelihood=height_lik_f_vec(mu,sigma),
@@ -164,6 +166,11 @@ posterior_table <- d_grid %>%
          posterior = raw_posterior/sum(raw_posterior))  #finally we normalize
 ```
 
+
+Now- look at the object you have created, what does it mean? (I zoomed into the region of most interest with the filter command)
+```{r}
+view(filter(posterior_table, mu>154 , mu<156, sigma>7.5,sigma<8.5))
+```
 
 
 ### Exploring the posterior probability
@@ -204,7 +211,7 @@ We can also view a contour plot of the samples. Because this is from the samples
 ```{r}
 
 ggplot(data=samples_height_model, aes(mu, sigma)) +
-  geom_density_2d(bins=10) +
+  geom_density_2d(h=1.5) +
   lims(x=c(150,160),y=c(2,9))
 ```
 
@@ -214,10 +221,10 @@ What do the "marginal" densities mean? They tell us how one parameter is distrib
 From samples, we can get them from our samples without any real work by just focusing on one parameter at a time. This code produces to graphs, you have to click on the output pane you wish to view. 
 ```{r}
 ggplot(data=samples_height_model, aes(x=mu)) + 
-  geom_density() 
+  geom_density(bw=.3) 
 
 ggplot(data=samples_height_model, aes(x=sigma)) + 
-  geom_density() 
+  geom_density(bw=.3) 
 
 ```
 
