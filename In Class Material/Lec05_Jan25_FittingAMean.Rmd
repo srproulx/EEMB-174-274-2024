@@ -57,6 +57,7 @@ $$
 ## Height data, mean and variance
 Here we will go through the example in the book that fits human height data using a normal likelihood function. Because normal distributions have both a mean and standard deviation, this is a two parameter model, so a grid approximation will really be a grid this time. 
 
+Load Kalahari forager dataset:
 ```{r loadData}
 data("Howell1")
 d<-Howell1
