@@ -27,6 +27,8 @@ source("../helper.R")
 ## Height data, mean and variance
 Here we will go through the example in the book that fits human height data using a normal likelihood function. Because normal distributions have both a mean and standard deviation, this is a two parameter model, so a grid approximation will really be a grid this time. 
 
+
+Load the Kalahari forager height dataset:
 ```{r loadData}
 data("Howell1")
 d<-Howell1
@@ -350,6 +352,18 @@ d2 <- mutate(d2, centered_weight = weight - mean(weight))
 
 
 Now perform a `quap` model of the data, but using your new centered weight column as the linear model predictor. Give the new model a new name, `quap_model_height_weight_centered`.
+
+```{r}
+
+quap_model_height_weight_centered <- quap(
+    alist(
+        height ~ dnorm( mu , sigma ) ,
+        mu <- a + b*( centered_weight  ) ,
+        a ~ dnorm( 178 , 20 ) ,
+        b ~ dnorm( 0 , 1 ) ,
+        sigma ~ dunif( 0 , 50 )
+    ) , data=d2 )
+```
 ```{r}
 
 ```
@@ -361,64 +375,107 @@ precis(quap_model_height_weight_centered)
 
 Now sample from the posterior to get a list of parameter values
 
-```{r}
 
+```{r}
+(samples_quap_model_height_weight_centered <- extract.samples(quap_model_height_weight_centered,n=1e4) %>% 
+  as_tibble() )
 ```
+
 
 
 Create the paired plot and compare to what we saw for the un-centered data.
-```{r}
 
+```{r}
+bayesplot::mcmc_pairs(samples_quap_model_height_weight_centered,diag_fun = "dens",
+  off_diag_fun =  "hex") 
 ```
+
 
 
 
 Plot some of the lines that are part of your sample. Be sure to plot the data with the centered weight as the x axis to compare the data to the prediction lines.
 
-### Plotting the linear fits
 
+First plot the data but use the centered weight as the x-axis
 ```{r}
-
+data_plot_centered <- ggplot(data=d2, aes(x=centered_weight,y=height)) + 
+  geom_point() +
+  xlim(-25,25)+
+  ylim(120,200)
 ```
+
+
+Now get the 10 samples from the posterior and add them to the plot
+```{r}
+subsamples <-sample_n(samples_quap_model_height_weight_centered,size=10)
+
+data_plot_centered +
+  geom_abline(intercept = subsamples$a, slope = subsamples$b, alpha=0.5, color="red")
+```
+
+It should look pretty much the same as our uncentered graph above.
+
+
 
 
 Use `link_df` and `sim_df` to create samples of the mean and to simulate from the posterior, and create a figure putting them all together. 
 
 
 We are using the `centered_weight` now, so this goes from -25 to +25. Create a tibble of weights and use `link_df` to find the posterior distribution for the `mu` parameter
-```{r}
 
+```{r}
+weights<-tibble(centered_weight=seq(from=-25, to=25, by=1),age=40)
+samples_height_weight_mu_centered <- link_df(quap_model_height_weight_centered,data=weights , n=100)
 ```
+
+
 
 
 Now that you have the samples for `mu`, we can find the 0.1 and 0.9 quantiles for each value of `centered_weight` in our posterior sample dataset. 
 
+
 ```{r}
-samples_summarized_centered <-
+samples_summarized_centered <- samples_height_weight_mu_centered %>%
+  group_by(centered_weight)%>%
+  summarise(mean_mu=mean(mu),
+            lower_mu=quantile(mu,0.1),
+            upper_mu=quantile(mu,0.9))%>%
+  ungroup()
 ```
+
 
 
 And now plot the data long with a `geom_ribbon` for the quantiles. 
+
 ```{r}
+(data_plot_means_centered=data_plot_centered +
+  geom_ribbon(data=samples_summarized_centered, inherit.aes = FALSE, aes(x=centered_weight, ymin=lower_mu,ymax=upper_mu),fill="blue",alpha=.5) )
 ```
+
 
 
 
 Now do the same but using `sim_df` to simulate data:
+
 ```{r}
+
+weights<-tibble(centered_weight=seq(from=-25, to=25, by=5),age=40)
+simulated_height_weight_centered <- sim_df(quap_model_height_weight_centered,data=weights )
 
 ```
 
 
-Find the 0.1 and 0.9 quantiles for simulated height for each value of `centered_weight` that we are considering:
+
 ```{r}
-simulations_summarized_centered <-
-```
+simulations_summarized_centered <- simulated_height_weight_centered %>%
+  group_by(centered_weight)%>%
+  summarise(mean_height=mean(height),
+            lower_height=quantile(height,0.1),
+            upper_height=quantile(height,0.9))%>%
+  ungroup()
 
-
-Now produce the combined graph showing the probably range of both `mu` and height values 
-```{r}
-
+data_plot_means_centered +
+  geom_ribbon(data=simulations_summarized_centered, inherit.aes = FALSE, aes(x=centered_weight, ymin=lower_height,ymax=upper_height),fill="blue",alpha=.5)
 ```
 
 
@@ -427,6 +484,27 @@ Now produce the combined graph showing the probably range of both `mu` and heigh
 Compare the sampled value of mu for the un-centered and centered models. The average value for height, for each weight, is contained in the dataframe samples_summarized for the un-centered model and samples_summarized_centered for the centered model. In order to plot these two results on the same graph we need to shift their x-axis values. Try and produce a graph with the mean heights as a function of weight for both models- you should see that they are virtually identical.
 
 
+
+ Produce the summarized version of the posterior for the centered model, and add a column to record which model this is from.
+```{r}
+samples_summarized_centered <- mutate(samples_summarized_centered,weight=centered_weight + mean(d2$weight),model="centered")
+```
+
+We already have the summarized table for the regular model. We need to add a column to tell us which model it is from.
+```{r}
+samples_summarized <- mutate(samples_summarized,model="uncentered")
+```
+
+Combine the two datasets by using all of the rows from each dataframe.
+```{r}
+combinded_summary <- bind_rows(samples_summarized_centered,samples_summarized)
+```
+
+Plot them on the same graph, using color to distinguish between the two models. 
+```{r}
+ggplot(combinded_summary, aes(x=weight,y=mean_mu,color=model))+geom_line()
+
+```
 
 
 
