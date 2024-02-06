@@ -147,6 +147,12 @@ d2<- as_tibble(d)%>% filter(age>=18)
 ```
 
 
+For the VM to find the stan location we need to add this: 
+```{r}
+set_cmdstan_path(path="/opt/conda/bin/cmdstan")
+```
+
+
 Now run the `ulam` model. The syntax is almost the same as for `quap`, with the addition of instructions for how to run the mcmc algorithm.
 ```{r}
 ulam_model_height <- ulam(
