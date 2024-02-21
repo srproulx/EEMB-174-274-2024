@@ -1,7 +1,6 @@
 ---
 title: "Feb 17, Interaction Effects"
 author: "Stephen R. Proulx"
-date: "2/1/2021"
 output: pdf_document
 ---
 
@@ -36,6 +35,19 @@ d <- d %>%
   select(log_gdp,rugged,log_gdp_std,rugged_std,country, cont_africa)
 ```
 
+
+
+Look at the data:
+```{r}
+
+ggplot(d,aes(x = rugged_std)) +
+  geom_point(aes(y = log_gdp, color = as.factor(cont_africa)),
+             size = 2/3) +
+  xlab("Terrain Ruggedness Index" ) +
+  ylab("log GDP from year 2000") 
+
+```
+
  
 ### Separate models
 Run two separate models, one for non-African countries, the other for African countries. 
@@ -67,7 +79,7 @@ Look at the precis, examine the parameter estimates, and make a note of the esti
 Here's some code to visualize this. It looks long and complicated, but you've used parts of this before. We just need to do some extra work to be able to plot the Africa/non-Africa countries on the same graph.
 ```{r}
 nd <- 
-  tibble(rugged_std = seq(from = -0.3, to = 0.8, length.out = 30))
+  tibble(rugged_std = seq(from = 0, to = 0.8, length.out = 30))
 
 f_m7.1 <-
   link_df(m7.1, data = nd) %>%
@@ -154,7 +166,7 @@ Now use compare to see how they stack up in terms of WAIC.
 
 
 
-In addition to the fact that WAIC suggests m7.5 is an improvement, we can ask if m7.5 shows different slopes depending on continents. We can see this by taking the contrast bertween the slopes, and see that they do differ.
+In addition to the fact that WAIC suggests m7.5 is an improvement, we can ask if m7.5 shows different slopes depending on continents. We can see this by taking the contrast between the slopes, and see that they do differ.
 ```{r}
 mcmc_areas(rethinking::extract.samples(m7.5)%>%
              as.tibble%>%
@@ -165,12 +177,12 @@ mcmc_areas(rethinking::extract.samples(m7.5)%>%
 ```
 
 
-And now let's see how the predicitons differ between the interaction model with the "run them separately model." What are these models doing the same or differently? The only difference is that sigma is estimated separately for the groups of countries. 
+And now let's see how the predictions differ between the interaction model with the "run them separately model." What are these models doing the same or differently? The only difference is that sigma is estimated separately for the groups of countries. 
 ```{r}
 nd1 <- 
-  tibble(rugged_std = seq(from = -0.3, to = 0.8, length.out = 30),cont_africa=0)
+  tibble(rugged_std = seq(from = 0, to = 0.8, length.out = 30),cont_africa=0)
 nd2 <- 
-  tibble(rugged_std = seq(from = -0.3, to = 0.8, length.out = 30),cont_africa=1)
+  tibble(rugged_std = seq(from = 0, to = 0.8, length.out = 30),cont_africa=1)
 
 
 f_m7.5_A <-
