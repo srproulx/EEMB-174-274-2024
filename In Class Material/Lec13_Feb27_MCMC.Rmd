@@ -1,7 +1,6 @@
 ---
-title: "Feb 22, MCMC"
+title: "Lec 13 MCMC"
 author: "Stephen R. Proulx"
-date: "2/1/2021"
 output: pdf_document
 ---
 
@@ -178,16 +177,15 @@ The output is similar to when we run `quap`, but we have two new columns, `n_eff
 
 Let's take a closer look at what actually comes out of the stan run. The object that we get out of `ulam` has a bunch of extra information attached to it, but for now we just want to see the samples that came out of the algorithm. We take the `@stanfit` part of the `ulam` object. Then we use the `rstan::extract` function to get a dataframe that has all of the samples. It has a column for each parameter we are fitting and as many rows as were sampled (in this case 500).
 ```{r}
-stanfit.ulam_model_height <- ulam_model_height@stanfit
+stanfit.ulam_model_height <- ulam_model_height@cstanfit$draws(format = "df")
 
-(posterior.samples <- rstan::extract(stanfit.ulam_model_height) %>% as_tibble())
 
 ```
 
 
 Now we have our samples, and like before we can work directly with them. For instance we can plot a histogram of the intercept values:
 ```{r}
-ggplot(posterior.samples,aes(x=a))+geom_histogram(bins=20)
+ggplot(stanfit.ulam_model_height,aes(x=a))+geom_histogram(bins=20)
 ```
 
 
@@ -215,7 +213,7 @@ precis( m9.2 )
 Let's look more closely at what is going on here.
 
 ```{r}
-bayesplot::mcmc_pairs(m9.2@stanfit , pars=c("alpha","sigma"  )) 
+bayesplot::mcmc_pairs(m9.2@cstanfit$draws(format="df") , pars=c("alpha","sigma"  )) 
 ```
 
 
@@ -243,7 +241,7 @@ precis( m9.3 )
 
 Let's look more closely at what is going on here.
 ```{r}
-bayesplot::mcmc_pairs(m9.3@stanfit , pars=c("alpha","sigma"  ) )
+bayesplot::mcmc_pairs(m9.3@cstanfit$draws(format="df") , pars=c("alpha","sigma"  ) )
 ```
 
 ```{r}
@@ -281,7 +279,7 @@ Look at the summary. It looks not great.
 precis( m9.4 )
 ```
 ```{r}
-pairs(m9.4@stanfit, pars=c("a1","a2","sigma"))
+mcmc_pairs(m9.4@cstanfit$draws(format="df"), pars=c("a1","a2","sigma"))
 
 traceplot( m9.4 )
 
@@ -290,7 +288,7 @@ trankplot( m9.4 )
 
 Even though this model has non-identifiable parameters, it gets the big picture correct. This also highlights one of the great features of model-based statistics, we can use the output of the model in new combinations without much added work. So here we can reconstruct the aggregate parameter $asum=a1+a2$  and use all the same tools we have developed.
 ```{r}
-post=as.data.frame(m9.4@stanfit) %>% mutate(asum=a1+a2) 
+post=as.data.frame(m9.4@cstanfit$draws(format="df")) %>% mutate(asum=a1+a2) 
 mcmcpairs(select(post,asum,sigma) , pars=c("asum","sigma"))
 ```
 
@@ -315,18 +313,16 @@ precis( m9.5 )
 ```
 
 ```{r}
-pairs(m9.5@stanfit, pars=c("a1","a2","sigma"))
+mcmc_pairs(m9.5@cstanfit$draws(format="df"), pars=c("a1","a2","sigma"))
 
 traceplot( m9.5 )
 
 trankplot( m9.5 )
 ```
 
-Like before this still gets the total right.
+Like before, this still gets the total right.
 ```{r}
-post=as.data.frame(m9.5@stanfit) %>% mutate(asum=a1+a2) 
-mcmcpairs(select(post,asum,sigma) )
+post=as.data.frame(m9.5@cstanfit$draws(format="df")) %>% mutate(asum=a1+a2) 
+mcmc_pairs(select(post,asum,sigma) )
  
 ```
-
-
