@@ -14,9 +14,9 @@ source("../helper.R")
 ```
 
 # Today's objectives:  
-* Learn some basic ways to diagnose and regularize your Markov chains
 * Understand how GLMs are built
 * Learn how to perform a simple GLM using the binomial and the Poisson likelihood function 
+* Learn more about calculating contrasts
 
 
 
