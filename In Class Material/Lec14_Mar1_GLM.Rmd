@@ -112,26 +112,6 @@ bayesplot::mcmc_areas(select(post,delHC),prob=0.9)
 
 ```
 
-#### full interaction model: just as an example
-```{r}
-
-m.HC.logit.int <- ulam(alist(
-  death ~ dbinom( total , mu ),
-  logit(mu) <-  a + HC_indicator * delHC + AZ_indicator * delAZ+HC_indicator *  AZ_indicator * intHA,
-  a ~ dnorm(0,1),
-  delHC ~ dnorm(0,0.1),
-  delAZ ~ dnorm(0,0.05),
-  intHA ~ dnorm(0,0.05)),
-  data=outcomes,
-  chains=4,cores=4,iter=2000
-)
-
-precis(m.HC.logit.int )
-```
-
-```{r}
-rethinking::pairs(m.HC.logit.int)
-```
 
 
 
@@ -215,13 +195,14 @@ ggplot(sim_dat, aes(x=x,y=frac))+geom_point()
 ```
 
 ```{r}
-m.bin.reg <- quap(
+
+m.bin.reg <- ulam(
   alist(
     y~dbinom(size=obs,prob=p),
     logit(p) <- a+ b*x ,
     a ~ dnorm(0,1),
     b ~ dnorm(0,1)),
-  data=sim_dat)
+  data=sim_dat , cores=4, chains=4, iter=3000)
 
 
 precis(m.bin.reg)
