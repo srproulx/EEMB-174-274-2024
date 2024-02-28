@@ -1,6 +1,7 @@
 ---
 title: "Mar 1, Binomial Regression"
 author: "Stephen R. Proulx"
+date: "2/22/2021"
 output: html_document
 ---
 
@@ -169,12 +170,32 @@ for ( i in 1:6 ) {
 What happens if you tighten the prior on a[gid] in model 11.8? Try it and see how it differs from the version we have already run. Try it and see:
 
 
+```{r}
+m11.8t <- ulam(
+    alist(
+        admit ~ dbinom( applications , p ) ,
+        logit(p) <- a*(gid-1)  + delta[dept_id] ,
+        a ~ dnorm( 0 , 1.5 ) ,
+        delta[dept_id] ~ dnorm( 0 , 1.5 )
+    ) , data=select(d,admit,applications,gid,dept_id) , cores=4, chains=4 , iter=4000,log_lik = TRUE) 
+```
+```{r}
+precis(m11.8A, depth=2)
+precis(m11.8t, depth=2)
+```
+```{r}
+postcheck( m11.8t )
+# draw lines connecting points from same dept
+for ( i in 1:6 ) {
+    x <- 1 + 2*(i-1)
+    y1 <- d$admit[x]/d$applications[x]
+    y2 <- d$admit[x+1]/d$applications[x+1]
+    lines( c(x,x+1) , c(y1,y2) , col=rangi2 , lwd=2 )
+    text( x+0.5 , (y1+y2)/2 + 0.05 , d$dept[x] , cex=0.8 , col=rangi2 )
+}
+```
 
 
-
-
-
-### Contrasts for model 11.8
 
 How should we evaluate the results from model 11.8? We need the contrast in a[1] and a[2]. Looking at the overlap of a[1] and a[2] is not enough;
 ```{r}
