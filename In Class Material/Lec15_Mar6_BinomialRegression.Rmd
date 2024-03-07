@@ -15,6 +15,7 @@ source("../helper.R")
 
 
 # Today's objectives:  
+* Learn about ways to use index and indicator variables to build models
 * binomial regression
 * Calculating contrasts from posterior parameter distributions
 * Specifying models with contrasts built in. 

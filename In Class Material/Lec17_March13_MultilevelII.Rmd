@@ -1,7 +1,6 @@
 ---
-title: "March 8, Multilevel II"
+title: "Multilevel II"
 author: "Stephen R. Proulx"
-date: "3/1/2021"
 output: pdf_document
 ---
 
@@ -156,6 +155,42 @@ dfline <-
        x = "pond number")+
   theme(panel.grid    = element_blank(),
         plot.subtitle = element_text(size = 10))
+```
+
+
+
+
+We can also look for error of the estimate of the abar by comparing the partial pooling and pooling approaches
+
+Run the full pooling model:
+```{r}
+## R code 13.13
+dat <- select( sim_data, pond, Ni, Si )
+m13.3FullPool <- ulam(
+    alist(
+        Si ~ dbinom( Ni , p ),
+        logit(p) <- a_pool,
+        a_pool ~ dnorm( 0 , 1.5 )
+    ), data=dat , chains=4 ,cores=4)
+```
+
+```{r}
+ 
+post_a_bar <- extract.samples(m13.3) %>% as.data.frame()%>%as_tibble()%>%select(a_bar)%>%
+  mutate(p_error = abs(inv_logit(a_bar)-inv_logit(.env$a_bar) )  )
+
+post_a_pool <- extract.samples(m13.3FullPool) %>% as.data.frame()%>%as_tibble()%>%select(a_pool)%>%
+  mutate(pool_error = abs(inv_logit(a_pool)-inv_logit(.env$a_bar) )  ) 
+
+post_p_comb = bind_cols(post_a_bar,post_a_pool)
+
+precis(post_p_comb)
+
+ggplot(data=post_p_comb , aes(x=p_error))+
+  geom_histogram(fill="red",alpha=0.5)+
+  geom_histogram(aes(x=pool_error), fill="green",alpha=0.5)
+
+
 ```
 
 ### re-simulate and look again

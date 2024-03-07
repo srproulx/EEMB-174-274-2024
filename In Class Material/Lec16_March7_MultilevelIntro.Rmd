@@ -1,7 +1,6 @@
 ---
-title: "March 3, Multilevel I"
+title: "Multilevel I"
 author: "Stephen R. Proulx"
-date: "3/1/2021"
 output: pdf_document
 ---
 
@@ -76,7 +75,7 @@ m13.2 <- ulam(
     abar ~ dnorm(0,1.5),
     sigma ~ dexp(1)
   ),
-  data=select(d,surv,density,tank), chains=4, log_lik = TRUE
+  data=select(d,surv,density,tank), chains=4, iter=10000, log_lik = TRUE
   )
 ```
 ```{r}
@@ -96,7 +95,7 @@ m13.2.s <- ulam(
     abar ~ dnorm(0,1.5),
     sigma ~ dexp(1)
   ),
-  data=select(d,surv,density,tank), chains=4, log_lik = TRUE
+  data=select(d,surv,density,tank), chains=4,iter=10000, log_lik = TRUE
   )
 ```
 
@@ -191,6 +190,8 @@ ggplot(ran_eff_sim_out_sum,aes(x=tank,y=meansurv))+
 
 ```
 
+ADD IN A COMPARISON TO THE FULL POOLING PREDICTIONS
+
 
 ### Converting to the model with no variance between tanks
 Here's the model where all tanks have the same `a`
@@ -235,7 +236,7 @@ m13.2.small.sigma2 <- ulam(
 ```
 
 ```{r}
-WAIC(m13.2.small.sigma)
+WAIC(m13.2.small.sigma1)
 ```
 
 
@@ -245,7 +246,7 @@ WAIC(m13.2.small.sigma)
 
 How do they compare? They basically come out the same, because they are more or less doing the same thing. The raw lppd scores are quite similar, and the WAIC are not more different thamn the SE of WAIC.
 ```{r}
-compare(m13.2.single.a,m13.2.small.sigma)
+compare(m13.2.single.a,m13.2.small.sigma1)
 ```
 ```{r}
 precis(m13.2.single.a)
